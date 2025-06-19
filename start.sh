@@ -19,10 +19,9 @@ if [ ! -f "${USERS_FILE}" ]; then
 fi
 
 
-
 # block all and only allow rw for public-*
-ntfy access everyone * deny
-ntfy access everyone public-* rw
+ntfy access everyone "*" deny
+ntfy access everyone "public-*" rw
 
 
 
@@ -39,32 +38,29 @@ loop_overlist(){
   OLDIFS="${IFS}"
   IFS=','
   for item in $list; do
-    item=$(echo"${time}" | xargs)
-    if [ -n "${item}" ]; then
-      if grep -q "^${item}$" "$USERS_FILE"; then
-        echo "User ${item} already exist! Skipping."
-        continue
-      fi
-      echo "Processing ${type}: $item"
-
-      local password="$(generate_random 24)"
-      if [ "${type}" = "admin" ]; then
-        echo -e "${password}\n${password}" | ntfy user add --role=admin "${item}"
-      else
-        echo -e "${password}\n${password}" | ntfy user add "${item}"
-      fi
-      echo "a user was generated! ${item}:${password}"
-
-      echo "${item}" >> "${USERS_FILE}"
+    if grep -q "^${item}" "$USERS_FILE"; then
+      echo "User ${item} already exist! Skipping."
+      continue
     fi
+
+    local password="$(generate_random 24)"
+    if [ "${type}" = "admin" ]; then
+      echo -e "${password}\n${password}" | ntfy user add --role=admin "${item}"
+    else
+      echo -e "${password}\n${password}" | ntfy user add "${item}"
+    fi
+    echo "a user was generated! ${item}:${password}"
+
+    echo "${item}:${password}:${role}" >> "${USERS_FILE}"
   done
   IFS="${OLDIFS}"
 }
 
-loop_overlist "${ADMINS}" "admin"
-loop_overlist "${USERS}" "user"
+init_user() {
+  loop_overlist "${ADMINS}" "admin"
+  loop_overlist "${USERS}" "user"
+}
 
 
-
-# finally serve the ntfy
-ntfy serve
+# start the server first before any modification
+(sleep 3;init_user) & ntfy "$@"
