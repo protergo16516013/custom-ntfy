@@ -44,7 +44,7 @@ loop_overlist(){
     fi
 
     local password="$(generate_random 24)"
-    if [ "${type}" = "admin" ]; then
+    if [ "${role}" = "admin" ]; then
       echo -e "${password}\n${password}" | ntfy user add --role=admin "${item}"
     else
       echo -e "${password}\n${password}" | ntfy user add "${item}"
